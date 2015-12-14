@@ -2,28 +2,38 @@
 # -*- coding: utf-8 -*-
 
 import zmq
-import sys
 import os
 from cmd2 import Cmd
 
-target_socket = sys.argv[1]
-target_source = "cli"
-
-if not target_socket:
-    target_socket = os.environ['ALFRED_SPINE_INPUT']
-    target_source = "env"
-    if not target_socket:
-        sys.exit("Could not find Alfred's socket from cli nor env var (ALFRED_SPINE_INPUT)")
-
-zmq_ctx = zmq.Context()
-spine_input = zmq_ctx.socket(zmq.PUSH)
-spine_input.connect(target_socket)
+global spine_input
 
 
 class AlfredCli(Cmd):
+    def do_connect(self, line):
+        connect(line)
 
     def do_msg(self, line):
+        global spine_input
         spine_input.send(line)
+
+
+def connect(target_socket):
+    zmq_ctx = zmq.Context()
+    global spine_input
+    spine_input = zmq_ctx.socket(zmq.PUSH)
+    spine_input.connect(target_socket)
+    print "Connected to: " + target_socket
+
+
+def main():
+    try:
+        if os.environ['ALFRED_SPINE_INPUT']:
+            connect(os.environ['ALFRED_SPINE_INPUT'])
+
+        AlfredCli().cmdloop()
+    except KeyboardInterrupt:
+        pass
+
 
 if __name__ == '__main__':
     AlfredCli().cmdloop()
