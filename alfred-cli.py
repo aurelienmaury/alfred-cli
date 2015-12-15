@@ -1,86 +1,72 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import threading
 import zmq
-import os
+import threading
+
 from cmd2 import Cmd
-
-global push_sock
-global spine_output
-global sub_thread_running
-global sub_thread
-
-sub_thread = None
-
-sub_thread_running = False
-
-class SubThread(threading.Thread):
-    def run(self):
-        global spine_output
-        global sub_thread_running
-        while sub_thread_running:
-            print spine_output.recv_string()
-
 
 
 class AlfredCli(Cmd):
+
+    spine_input = None
+    spine_output = None
+    spine_listener = None
+
     def do_push_to(self, line):
-        connect_push(line)
+        self.spine_input = zmq.Context().socket(zmq.PUSH)
+        self.spine_input.connect(line)
+        self.poutput("Pushing to: " + line)
 
     def do_subscribe_to(self, line):
-        connect_subscribe(line)
+
+        if self.spine_listener:
+            self.spine_listener.stop()
+
+        self.spine_output = zmq.Context().socket(zmq.SUB)
+        self.spine_output.setsockopt(zmq.SUBSCRIBE, '/alfred/cli-output/')
+        self.spine_output.connect(line)
+
+        self.spine_listener = SpineListenerThread(self)
+        self.spine_listener.start()
+
+        self.poutput("Subscribed to: " + line)
 
     def do_msg(self, line):
-        global push_sock
-        push_sock.send_string(line)
-        print "sent "+line
+        self.spine_input.send_string(line)
 
 
-def connect_push(target_socket):
-    global push_sock
+class SpineListenerThread(threading.Thread):
 
-    push_sock = zmq.Context().socket(zmq.PUSH)
-    push_sock.connect(target_socket)
+    def __init__(self, father):
+        threading.Thread.__init__(self)
+        self.father = father
+        self.keep_on = False
+        self.setDaemon(True)
 
-    print "Pushing to: " + target_socket
+    def run(self):
+        self.keep_on = True
+        count = 0
+        while self.keep_on:
+            try:
+                message = self.father.spine_output.recv_string(flags=zmq.NOBLOCK)
+                self.father.stdout.write("count:"+str(count)+":"+message + '\n')
+                count += 1
+            except zmq.Again:
+                pass
 
-
-def connect_subscribe(target_socket):
-    global spine_output
-    global sub_thread
-    global sub_thread_running
-    sub_thread_running = False
-
-    print "joining"
-    if sub_thread:
-        sub_thread.stop()
-        sub_thread.join()
-
-    zmq_ctx = zmq.Context()
-    spine_output = zmq_ctx.socket(zmq.SUB)
-    spine_output.setsockopt(zmq.SUBSCRIBE, '/alfred/cli-output/')
-    spine_output.connect(target_socket)
-
-
-    sub_thread_running = True
-    sub_thread = SubThread()
-    sub_thread.start()
-    print "Subscribed to: " + target_socket
+    def stop(self):
+        self.keep_on = False
+        self.join()
 
 
 def main():
+    alfred_cli = AlfredCli()
     try:
-        AlfredCli().cmdloop()
+        alfred_cli.cmdloop()
     except KeyboardInterrupt:
-        global sub_thread_running
-        global sub_thread
-        sub_thread_running = False
-        if sub_thread:
-            sub_thread.stop()
-        sub_thread.join()
         pass
-
+        print "\n"
 
 if __name__ == '__main__':
     main()
