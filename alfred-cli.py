@@ -8,7 +8,6 @@ from cmd2 import Cmd
 
 
 class AlfredCli(Cmd):
-
     spine_input = None
     spine_output = None
     spine_listener = None
@@ -19,7 +18,6 @@ class AlfredCli(Cmd):
         self.poutput("Pushing to: " + line)
 
     def do_subscribe_to(self, line):
-
         if self.spine_listener:
             self.spine_listener.stop()
 
@@ -37,7 +35,6 @@ class AlfredCli(Cmd):
 
 
 class SpineListenerThread(threading.Thread):
-
     def __init__(self, father):
         threading.Thread.__init__(self)
         self.father = father
@@ -46,12 +43,10 @@ class SpineListenerThread(threading.Thread):
 
     def run(self):
         self.keep_on = True
-        count = 0
         while self.keep_on:
             try:
                 message = self.father.spine_output.recv_string(flags=zmq.NOBLOCK)
-                self.father.stdout.write("count:"+str(count)+":"+message + '\n')
-                count += 1
+                self.father.stdout.write("=> " + message + '\n')
             except zmq.Again:
                 pass
 
@@ -67,6 +62,7 @@ def main():
     except KeyboardInterrupt:
         pass
         print "\n"
+
 
 if __name__ == '__main__':
     main()
