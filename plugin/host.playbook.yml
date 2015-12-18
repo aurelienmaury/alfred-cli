@@ -1,5 +1,6 @@
 ---
 - name: add an alias on cli
+  become_user: root
   copy:
     dest=/etc/profile.d/alfred-cli.sh
     content= |
