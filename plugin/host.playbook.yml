@@ -1,0 +1,11 @@
+---
+- name: add an alias on cli
+  copy:
+    dest=/etc/profile.d/alfred-cli.sh
+    content= |
+      function alfred-cli {
+       . {{ plugin_virtualenv_path }}/bin/activate
+       . /etc/default/alfred
+       {{ plugin_content_path }}/alfred-cli.py "pusht_to $ALFRED_SPINE_INPUT" "subscribe_to $ALFRED_SPINE_OUTPUT"
+       deactivate
+      }
