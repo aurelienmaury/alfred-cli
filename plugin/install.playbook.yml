@@ -1,12 +1,9 @@
 ---
 - name: add an alias on cli
   become_user: root
-  copy:
+  template:
+    src="{{ plugin_content_path }}/plugin/templates/alias.j2"
     dest=/etc/profile.d/alfred-cli.sh
-    content= |
-      function alfred-cli {
-       . {{ plugin_virtualenv_path }}/bin/activate
-       . /etc/default/alfred
-       {{ plugin_content_path }}/alfred-cli.py "pusht_to $ALFRED_SPINE_INPUT" "subscribe_to $ALFRED_SPINE_OUTPUT"
-       deactivate
-      }
+    owner=root
+    group=root
+    mode=0644

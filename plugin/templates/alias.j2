@@ -1,0 +1,6 @@
+function alfred-cli {
+    . {{ plugin_virtualenv_path }}/bin/activate
+    . /etc/default/alfred
+    {{ plugin_content_path }}/alfred-cli.py "push_to $ALFRED_SPINE_INPUT" "subscribe_to $ALFRED_SPINE_OUTPUT"
+    deactivate
+}
